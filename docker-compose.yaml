@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+
+  db:
+    image: postgres:14.3
+    container_name: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - $HOME/docker/volumes/postgres/arlette:/var/lib/postgresql/data
+      - '/etc/localtime:/etc/localtime:ro'
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+      PGDATA: /var/lib/postgresql/data
+      TZ: 'Europe/Moscow'
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - '8080:8080'
